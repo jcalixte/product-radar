@@ -6,14 +6,17 @@ import { MAX_SCORE } from "../types"
 const props = withDefaults(
   defineProps<{
     radar: Radar
-    /** Renders the radar name (top) and profile legend (bottom). Defaults to true. */
-    withChrome?: boolean
+    /** Renders the radar name + concept at the top. Defaults to true. */
+    withHeader?: boolean
+    /** Renders the profile legend at the bottom. Defaults to true. */
+    withLegend?: boolean
   }>(),
-  { withChrome: true },
+  { withHeader: true, withLegend: true },
 )
 
 const WIDTH = 720
-const HEIGHT = computed(() => (props.withChrome === false ? 600 : 800))
+const BASE_CHART_H = 600
+const HEIGHT = computed(() => BASE_CHART_H + TITLE_H.value + LEGEND_H.value)
 
 const subtitleText = computed(() => props.radar.concept?.trim() ?? "")
 
@@ -37,12 +40,12 @@ function wrapToTwoLines(text: string): string[] {
 // 0 lines = no concept, 1 = fits, 2 = wrapped.
 const subtitleLines = computed<string[]>(() => {
   const text = subtitleText.value
-  if (props.withChrome === false || !text) return []
+  if (!props.withHeader || !text) return []
   return text.length <= SUBTITLE_SINGLE_LINE_MAX ? [text] : wrapToTwoLines(text)
 })
 
 const TITLE_H = computed(() => {
-  if (props.withChrome === false) return 0
+  if (!props.withHeader) return 0
   const n = subtitleLines.value.length
   return n === 0 ? 60 : n === 1 ? 92 : 116
 })
@@ -51,7 +54,7 @@ const titleY = computed(() => (subtitleLines.value.length === 0 ? TITLE_H.value 
 const subtitleFontSize = computed(() => (subtitleLines.value.length > 1 ? 14 : 16))
 const subtitleStartY = computed(() => (subtitleLines.value.length > 1 ? 56 : 64))
 const subtitleLineHeight = computed(() => (subtitleLines.value.length > 1 ? 18 : 0))
-const LEGEND_H = computed(() => (props.withChrome === false ? 0 : 120))
+const LEGEND_H = computed(() => (props.withLegend ? 120 : 0))
 const CHART_TOP = computed(() => TITLE_H.value)
 const CHART_BOTTOM = computed(() => HEIGHT.value - LEGEND_H.value)
 const CHART_CX = WIDTH / 2
@@ -239,7 +242,7 @@ const insufficientCriteria = computed(() => props.radar.criteria.length < 3)
 
     <!-- Title -->
     <text
-      v-if="withChrome !== false"
+      v-if="withHeader"
       :x="WIDTH / 2"
       :y="titleY"
       text-anchor="middle"
@@ -356,7 +359,7 @@ const insufficientCriteria = computed(() => props.radar.criteria.length < 3)
     </g>
 
     <!-- Legend -->
-    <g v-if="withChrome !== false" :transform="`translate(0, ${CHART_BOTTOM + 24})`">
+    <g v-if="withLegend" :transform="`translate(0, ${CHART_BOTTOM + 24})`">
       <g
         v-for="(row, rowIdx) in legendLayout.rows"
         :key="`row-${rowIdx}`"

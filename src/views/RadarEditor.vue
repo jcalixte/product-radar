@@ -34,6 +34,7 @@ function setConcept(concept: string): void {
 }
 
 const chartContainer = ref<HTMLElement | null>(null)
+const chartOnlyContainer = ref<HTMLElement | null>(null)
 const toast = ref<{ kind: "success" | "error"; text: string } | null>(null)
 
 function flash(kind: "success" | "error", text: string, ms = 2200): void {
@@ -43,8 +44,8 @@ function flash(kind: "success" | "error", text: string, ms = 2200): void {
   }, ms)
 }
 
-function getSvg(): SVGSVGElement | null {
-  return chartContainer.value?.querySelector("svg") ?? null
+function getSvg(container: HTMLElement | null = chartContainer.value): SVGSVGElement | null {
+  return container?.querySelector("svg") ?? null
 }
 
 async function downloadPng(): Promise<void> {
@@ -84,6 +85,19 @@ async function copyPng(): Promise<void> {
     flash("error", "Clipboard copy not supported here — try Download")
   }
 }
+
+async function copyRadarOnly(): Promise<void> {
+  const svg = getSvg(chartOnlyContainer.value)
+  if (!svg) return
+  try {
+    const blob = await svgToPngBlob(svg, 2)
+    await copyBlobToClipboard(blob)
+    flash("success", "Radar copied to clipboard")
+  } catch (err) {
+    console.error(err)
+    flash("error", "Clipboard copy not supported here — try Download")
+  }
+}
 </script>
 
 <template>
@@ -113,6 +127,7 @@ async function copyPng(): Promise<void> {
       </div>
       <div class="flex gap-2 mt-1">
         <button class="btn btn-outline" @click="copyShareLink">Share link</button>
+        <button class="btn btn-outline" @click="copyRadarOnly">Copy radar only</button>
         <button class="btn btn-outline" @click="copyPng">Copy PNG</button>
         <button class="btn btn-primary" @click="downloadPng">Download PNG</button>
       </div>
@@ -142,6 +157,15 @@ async function copyPng(): Promise<void> {
     <!-- Score grid below, full width -->
     <div class="mt-8">
       <ScoreGrid :radar="radar" />
+    </div>
+
+    <!-- Offscreen chromeless chart used by "Copy radar only" -->
+    <div
+      ref="chartOnlyContainer"
+      aria-hidden="true"
+      style="position: absolute; left: -9999px; top: 0; width: 720px; pointer-events: none"
+    >
+      <RadarChart :radar="radar" :with-header="false" />
     </div>
   </section>
 </template>
